@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>漣漪效果</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #0e416e;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: transparent;
+      box-shadow: inset 0px 0px 18px 4px #ffffff4d,0px 0px 7px 4px #ffffff4d; /* 較大的陰影 */
+      border: 1px solid #ffffff;
+      transform: scale(0);
+      animation: ripple-effect 1.6s ease-out forwards;
+      pointer-events: none;
+      will-change: transform, opacity; /* 優化渲染 */
+    }
+
+    @keyframes ripple-effect {
+      to {
+        transform: scale(5);
+        opacity: 0;
+      }
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background-color: #00a88c;
+      background-image: 
+        radial-gradient(closest-side, #008e9b, rgba(235, 105, 78, 0)),
+        radial-gradient(closest-side, #00a8a0, rgba(243, 11, 164, 0)),
+        radial-gradient(closest-side, #0087af, rgba(254, 234, 131, 0)),
+        radial-gradient(closest-side, #407cb8, rgba(170, 142, 245, 0)),
+        radial-gradient(closest-side, #746db1, rgba(248, 192, 147, 0));
+      background-size: 
+        130vmax 130vmax,
+        80vmax 80vmax,
+        90vmax 90vmax,
+        110vmax 110vmax,
+        90vmax 90vmax;
+      background-position:
+        -80vmax -80vmax,
+        60vmax -30vmax,
+        10vmax 10vmax,
+        -30vmax -10vmax,
+        50vmax 50vmax;
+      background-repeat: no-repeat;
+      animation: 10s movement linear infinite;
+    }
+
+    body::after {
+      content: '';
+      display: block;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      
+    }
+
+
+    @keyframes movement {
+      0%, 100% {
+        background-size: 
+          130vmax 130vmax,
+          80vmax 80vmax,
+          90vmax 90vmax,
+          110vmax 110vmax,
+          90vmax 90vmax;
+        background-position:
+          -80vmax -80vmax,
+          60vmax -30vmax,
+          10vmax 10vmax,
+          -30vmax -10vmax,
+          50vmax 50vmax;
+      }
+      25% {
+        background-size: 
+          100vmax 100vmax,
+          90vmax 90vmax,
+          100vmax 100vmax,
+          90vmax 90vmax,
+          60vmax 60vmax;
+        background-position:
+          -60vmax -90vmax,
+          50vmax -40vmax,
+          0vmax -20vmax,
+          -40vmax -20vmax,
+          40vmax 60vmax;
+      }
+      50% {
+        background-size: 
+          80vmax 80vmax,
+          110vmax 110vmax,
+          80vmax 80vmax,
+          60vmax 60vmax,
+          80vmax 80vmax;
+        background-position:
+          -50vmax -70vmax,
+          40vmax -30vmax,
+          10vmax 0vmax,
+          20vmax 10vmax,
+          30vmax 70vmax;
+      }
+      75% {
+        background-size: 
+          90vmax 90vmax,
+          90vmax 90vmax,
+          100vmax 100vmax,
+          90vmax 90vmax,
+          70vmax 70vmax;
+        background-position:
+          -50vmax -40vmax,
+          50vmax -30vmax,
+          20vmax 0vmax,
+          -10vmax 10vmax,
+          40vmax 60vmax;
+      }
+    }
+
+    /*封面*/
+    #intro-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 3s ease, filter 3s ease;
+  font-family: 游明朝;
+}
+
+.intro-text {
+  text-align: center;
+  color: white;
+  transition: opacity 3s ease, filter 3s ease;
+}
+
+#intro-overlay.fade-out {
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(8px);
+}
+
+#intro-overlay.fade-out .intro-text {
+  opacity: 0;
+  filter: blur(8px);
+}
+
+  </style>
+</head>
+<body>
+  
+  <div id="intro-overlay">
+    <div class="intro-text">
+      <h1>雨</h1>
+      <p>點擊任意地方開始</p>
+    </div>
+  </div>
+  
+  <audio id="background-music" autoplay loop muted>
+    <source src="F:\site\rain.mp3" type="audio/mp3" />
+    你的瀏覽器不支援音訊元素。
+  </audio>
+
+  <script>
+document.addEventListener("click", function handleFirstClick() {
+  const overlay = document.getElementById("intro-overlay");
+  overlay.classList.add("fade-out");
+  document.removeEventListener("click", handleFirstClick);
+  startAmbientRipples(); // 開始背景漣漪
+});
+const audio = document.getElementById("background-music");
+// 監聽整個頁面點擊事件
+document.addEventListener("click", () => {
+  if (audio.paused) {
+    audio.play();  // 播放音樂
+    audio.muted = false;  // 解除靜音
+  }
+});
+
+
+ let rippleTimeout; // 替代 rippleInterval
+    let mouseX = 0; // 用來儲存滑鼠位置的變數
+    let mouseY = 0;
+
+    // 生成漣漪的函數
+    function createRipple(e) {
+      const ripple = document.createElement("div");
+      ripple.classList.add("ripple");
+      ripple.style.width = ripple.style.height = "100px";
+      ripple.style.left = `${e.clientX - 50}px`;
+      ripple.style.top = `${e.clientY - 50}px`;
+      document.body.appendChild(ripple);
+
+      ripple.addEventListener("animationend", () => {
+        ripple.remove();
+      });
+    }
+
+   // 🔺 每次都設定新的 timeout 時間
+function startRandomRipples() {
+  const delay = Math.random() * 2000 + 150; // 🔺 每次 2~4 秒隨機
+  rippleTimeout = setTimeout(() => {
+    createRipple({ clientX: mouseX, clientY: mouseY });
+    startRandomRipples(); // 🔁 遞迴呼叫下一次
+  }, delay);
+}
+
+// 🔺 滑鼠按下時先產生一個，然後開始循環
+document.addEventListener("mousedown", function (e) {
+  createRipple(e);
+  mouseX = e.clientX;
+  mouseY = e.clientY;
+  startRandomRipples(); // 🔺 啟動隨機間隔的循環
+});
+
+// 🔺 放開滑鼠就停止
+document.addEventListener("mouseup", function () {
+  clearTimeout(rippleTimeout);
+});
+
+
+    // 實時更新滑鼠位置
+    document.addEventListener("mousemove", function (e) {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+
+    //隨機漣漪出現
+    function startAmbientRipples() {
+  const delay = Math.random() * 3000 + 50; // 1~4 秒隨機
+  setTimeout(() => {
+    const x = Math.random() * window.innerWidth;
+    const y = Math.random() * window.innerHeight;
+    createRipple({ clientX: x, clientY: y });
+
+    startAmbientRipples(); // 繼續下一輪
+  }, delay);
+}
+
+
+
+
+  </script>
+</body>
+</html>
